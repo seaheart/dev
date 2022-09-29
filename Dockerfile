@@ -24,6 +24,7 @@ RUN apt-get install -y \
     vim \
     wget \
     curl \
+    lsof \
     python-is-python3 \
     git-core
 
