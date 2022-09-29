@@ -1,9 +1,6 @@
 # 前端开发中，时常需要使用 shell 命令，而有一个较为完整的环境比较重要，因此选择了使用 ubuntu 作为基础，若在意容器大小的话，可自行选择适用的基础镜像
 FROM ubuntu
-LABEL org.opencontainers.image.authors="codebaokur@codebaoku.com"
-
-# 设置环境变量
-ENV DEBIAN_FRONTEND noninteractive
+LABEL org.opencontainers.image.authors="ycyin8795@163.com"
 
 # 设置时区
 ARG TZ=Asia/Shanghai
@@ -25,41 +22,21 @@ RUN apt-get install -y \
     wget \
     curl \
     lsof \
-    python-is-python3 \
-    git-core
+    sudo \
+    git
 
-#  安装 zsh，以后进入容器中时，更加方便地使用 shell
-RUN git clone https://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh && \
-    cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc && \
-    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting && \
-    sed -i 's/^plugins=(/plugins=(zsh-autosuggestions zsh-syntax-highlighting z /' ~/.zshrc && \
-    chsh -s /bin/zsh
+# 安装 oh my zsh
+RUN sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
-# 创建 me 用户
-RUN useradd --create-home --no-log-init --shell /bin/zsh -G sudo me && \
-    adduser me sudo && \
-    echo 'me:password' | chpasswd
-
-# 为 me 安装 omz
-USER me
-RUN git clone https://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh && \
-    cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc && \
-    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting && \
-    sed -i 's/^plugins=(/plugins=(zsh-autosuggestions zsh-syntax-highlighting z /' ~/.zshrc
-
-# 安装 nvm 和 node
-ENV NVM_DIR=/home/me/.nvm \
-    NODE_VERSION=v14
-
-RUN mkdir -p $NVM_DIR && \
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash && \
+# 安装 nvm 和 node14
+ENV NVM_DIR=~/.nvm \
+    DEFAULT_NODE_VERSION=v14
+RUN mkdir -p $NVM_DIR && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash && \
     . $NVM_DIR/nvm.sh && \
-    nvm install ${NODE_VERSION} && \
-    nvm use ${NODE_VERSION} && \
-    nvm alias ${NODE_VERSION} && \
-    ln -s `npm bin --global` /home/me/.node-bin && \
+    nvm install ${DEFAULT_NODE_VERSION} \
+    nvm use ${DEFAULT_NODE_VERSION} && \
+    nvm alias ${DEFAULT_NODE_VERSION} && \
+    ln -s `npm bin --global` /home/.node-bin && \
     npm install --global nrm && \
     nrm use taobao && \
     echo '' >> ~/.zshrc && \
@@ -71,18 +48,9 @@ RUN curl -o- -L https://yarnpkg.com/install.sh | bash; \
     echo '' >> ~/.zshrc && \
     echo 'export PATH="$HOME/.yarn/bin:$PATH"' >> ~/.zshrc
 
-# Add NVM binaries to root's .bashrc
-USER root
-RUN echo '' >> ~/.zshrc && \
-    echo 'export NVM_DIR="/home/me/.nvm"' >> ~/.zshrc && \
-    echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm' >> ~/.zshrc && \
-    echo '' >> ~/.zshrc && \
-    echo 'export YARN_DIR="/home/me/.yarn"' >> ~/.zshrc && \
-    echo 'export PATH="$YARN_DIR/bin:$PATH"' >> ~/.zshrc
-
 # Add PATH for node & YARN
-ENV PATH $PATH:/home/me/.node-bin:/home/me/.yarn/bin
+ENV PATH $PATH:/home/.node-bin:/home/.yarn/bin
 
-# 删除 apt/lists，可以减少最终镜像大小
-RUN rm -rf /var/lib/apt/lists/*
-WORKDIR /var/www
+WORKDIR /
+
+ENTRYPOINT ["/bin/zsh"]
